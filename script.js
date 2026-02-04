@@ -1,5 +1,5 @@
 // URL сервера
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://daily-pc.onrender.com/api';
 
 // Установка текущей даты
 const now = new Date();
