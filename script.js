@@ -263,26 +263,24 @@ document.getElementById('laptopBrand')?.addEventListener('change', function() {
 });
 
 // Расчет стоимости ПК
-document.getElementById('laptopForm')?.addEventListener('submit', function(e) {
+document.getElementById('pcForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
     
     const cpuPrice = getComponentPrice('cpu', document.getElementById('cpu').value);
     const gpuPrice = getComponentPrice('gpu', document.getElementById('gpu').value);
-    const ramPrice = document.getElementById('ram').value * getComponentPrice('ram', 'perGB'); // Исправлено
-    const storagePrice = document.getElementById('storage').value * getComponentPrice('storage', 'perGB'); // Исправлено
+    const ramPrice = document.getElementById('ram').value * getComponentPrice('ram', 'perGB');
+    const storagePrice = document.getElementById('storage').value * getComponentPrice('storage', 'perGB');
     const mbPrice = getComponentPrice('mb', document.getElementById('mb').value);
-    const psuPrice = Math.ceil(document.getElementById('psu').value / 100) * getComponentPrice('psu', 'per100W'); // Исправлено
+    const psuPrice = Math.ceil(document.getElementById('psu').value / 100) * getComponentPrice('psu', 'per100W');
     const casePrice = getComponentPrice('case', document.getElementById('case').value);
-    
-    // Базовая стоимость сборки ноутбука
-    const baseCost = 15000;
     
     const totalPrice = cpuPrice + gpuPrice + ramPrice + storagePrice + mbPrice + psuPrice + casePrice;
     
     // Отображение результата
-    document.getElementById('laptopTotal').textContent = `₽ ${totalPrice.toLocaleString('ru-RU')}`;
+    document.getElementById('pcTotal').textContent = `₽ ${totalPrice.toLocaleString('ru-RU')}`;
     
-    const breakdown = document.getElementById('laptopBreakdown');
+    const breakdown = document.getElementById('pcBreakdown');
+    if (breakdown) {
         breakdown.innerHTML = `
             <div><span>Процессор:</span><span>₽ ${cpuPrice.toLocaleString('ru-RU')}</span></div>
             <div><span>Видеокарта:</span><span>₽ ${gpuPrice.toLocaleString('ru-RU')}</span></div>
@@ -295,6 +293,7 @@ document.getElementById('laptopForm')?.addEventListener('submit', function(e) {
                 <span>ИТОГО:</span><span>₽ ${totalPrice.toLocaleString('ru-RU')}</span>
             </div>
         `;
+    }
     
     showNotification(`Расчет выполнен! Общая стоимость: ₽${totalPrice.toLocaleString('ru-RU')}`, 'success');
 });
@@ -304,9 +303,9 @@ document.getElementById('laptopForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
     
     const cpuPrice = getComponentPrice('laptopCpu', document.getElementById('laptopCpu').value);
-    const ramPrice = document.getElementById('laptopRam').value * getComponentPrice('laptopRam', 'perGB'); // Исправлено
-    const storagePrice = document.getElementById('laptopStorage').value * getComponentPrice('laptopStorage', 'perGB'); // Исправлено
-    const displayPrice = getComponentPrice('laptopDisplay', document.getElementById('laptopDisplay').value); // Теперь работает
+    const ramPrice = document.getElementById('laptopRam').value * getComponentPrice('laptopRam', 'perGB');
+    const storagePrice = document.getElementById('laptopStorage').value * getComponentPrice('laptopStorage', 'perGB');
+    const displayPrice = getComponentPrice('laptopDisplay', document.getElementById('laptopDisplay').value);
     const gpuPrice = getComponentPrice('laptopGpu', document.getElementById('laptopGpu').value);
     const brandPrice = getComponentPrice('laptopBrand', document.getElementById('laptopBrand').value);
     
@@ -319,6 +318,7 @@ document.getElementById('laptopForm')?.addEventListener('submit', function(e) {
     document.getElementById('laptopTotal').textContent = `₽ ${totalPrice.toLocaleString('ru-RU')}`;
     
     const breakdown = document.getElementById('laptopBreakdown');
+    if (breakdown) {
         breakdown.innerHTML = `
             <div><span>Базовая сборка:</span><span>₽ ${baseCost.toLocaleString('ru-RU')}</span></div>
             <div><span>Процессор:</span><span>₽ ${cpuPrice.toLocaleString('ru-RU')}</span></div>
@@ -331,6 +331,7 @@ document.getElementById('laptopForm')?.addEventListener('submit', function(e) {
                 <span>ИТОГО:</span><span>₽ ${totalPrice.toLocaleString('ru-RU')}</span>
             </div>
         `;
+    }
     
     showNotification(`Расчет выполнен! Ориентировочная стоимость: ₽${totalPrice.toLocaleString('ru-RU')}`, 'success');
 });
