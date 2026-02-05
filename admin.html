@@ -185,181 +185,315 @@
     </div>
 
     <script>
-        const API_URL = 'https://daily-pc.onrender.com/api';
-        let prices = {};
-
-        // Загрузка цен
-        async function loadPrices() {
-            try {
-                const response = await fetch(`${API_URL}/all-prices`);
-                const data = await response.json();
-
-                prices = data.prices;
-                document.getElementById('lastUpdated').textContent =
-                    new Date(data.timestamp).toLocaleString('ru-RU');
-
-                renderPrices();
-            } catch (error) {
-                console.error('Ошибка загрузки цен:', error);
-                showNotification('Не удалось загрузить цены', 'error');
-            }
+    // Автоматическое определение URL
+    const API_URL = 'https://daily-pc.onrender.com/api';
+    
+    let prices = {};
+    
+    // Загрузка цен
+    async function loadPrices() {
+        try {
+            const response = await fetch(`${API_URL}/all-prices`);
+            const data = await response.json();
+            
+            prices = data.prices;
+            document.getElementById('lastUpdated').textContent = 
+                new Date(data.timestamp).toLocaleString('ru-RU');
+            
+            renderPrices();
+        } catch (error) {
+            console.error('Ошибка загрузки цен:', error);
+            showNotification('Не удалось загрузить цены', 'error');
         }
-
-        // Отображение цен
-        function renderPrices() {
-            const container = document.getElementById('pricesContainer');
-            container.innerHTML = '';
-
-            Object.entries(prices).forEach(([category, items]) => {
-                if (category === 'metadata') return;
-
-                const card = document.createElement('div');
-                card.className = 'price-card';
-                card.innerHTML = `<h3>${getCategoryName(category)}</h3>`;
-
-                Object.entries(items).forEach(([id, price]) => {
-                    const item = document.createElement('div');
-                    item.className = 'price-item';
-                    item.innerHTML = `
-                        <span>${getComponentName(id)}</span>
-                        <div class="price-input">
-                            <span>₽</span>
-                            <input type="number" 
-                                   data-category="${category}" 
-                                   data-id="${id}" 
-                                   value="${price}" 
-                                   min="0">
-                            <button class="update-btn" 
-                                    onclick="updatePrice('${category}', '${id}', this)">💾</button>
-                        </div>
-                    `;
-                    card.appendChild(item);
-                });
-
-                container.appendChild(card);
+    }
+    
+    // Отображение цен и формы добавления
+    function renderPrices() {
+        const container = document.getElementById('pricesContainer');
+        container.innerHTML = '';
+        
+        // Форма добавления нового компонента
+        const addForm = document.createElement('div');
+        addForm.className = 'price-card';
+        addForm.innerHTML = `
+            <h3>➕ Добавить новый компонент</h3>
+            <div style="display: grid; gap: 10px; margin-bottom: 15px;">
+                <div>
+                    <label>Категория:</label>
+                    <select id="newCategory" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="cpu">Процессоры</option>
+                        <option value="gpu">Видеокарты</option>
+                        <option value="mb">Материнские платы</option>
+                        <option value="case">Корпуса</option>
+                        <option value="laptopCpu">Процессоры ноутбуков</option>
+                        <option value="laptopGpu">Видеокарты ноутбуков</option>
+                        <option value="laptopBrand">Бренды ноутбуков</option>
+                    </select>
+                </div>
+                <div>
+                    <label>ID компонента (латиница, без пробелов):</label>
+                    <input type="text" id="newProductId" placeholder="например: rtx5090" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    <label>Отображаемое название:</label>
+                    <input type="text" id="newDisplayName" placeholder="например: NVIDIA RTX 5090 24GB" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    <label>Цена (₽):</label>
+                    <input type="number" id="newPrice" min="0" placeholder="10000" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <button onclick="addNewComponent()" class="update-btn" style="background: #4CAF50;">➕ Добавить компонент</button>
+            </div>
+        `;
+        container.appendChild(addForm);
+        
+        // Отображение существующих компонентов
+        Object.entries(prices).forEach(([category, items]) => {
+            if (category === 'metadata') return;
+            if (typeof items !== 'object' || items === null) return;
+            if (Object.keys(items).length === 0) return;
+            
+            const card = document.createElement('div');
+            card.className = 'price-card';
+            card.innerHTML = `<h3>${getCategoryName(category)} <small>(${Object.keys(items).length} шт)</small></h3>`;
+            
+            Object.entries(items).forEach(([id, price]) => {
+                const item = document.createElement('div');
+                item.className = 'price-item';
+                item.style.display = 'flex';
+                item.style.alignItems = 'center';
+                item.style.justifyContent = 'space-between';
+                item.style.padding = '10px 0';
+                item.style.borderBottom = '1px solid #e0e0e0';
+                
+                item.innerHTML = `
+                    <div style="flex: 1;">
+                        <strong>${getComponentName(id)}</strong><br>
+                        <small style="color: #666;">ID: ${id}</small>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span>₽</span>
+                        <input type="number" 
+                               data-category="${category}" 
+                               data-id="${id}" 
+                               value="${price}" 
+                               min="0"
+                               style="width: 100px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        <button class="update-btn" 
+                                onclick="updatePrice('${category}', '${id}', this)"
+                                style="padding: 6px 12px;">💾</button>
+                        <button class="update-btn" 
+                                onclick="deleteComponent('${category}', '${id}', this)"
+                                style="padding: 6px 12px; background: #f44336;"
+                                title="Удалить компонент">🗑️</button>
+                    </div>
+                `;
+                card.appendChild(item);
             });
+            
+            container.appendChild(card);
+        });
+    }
+    
+    // ДОБАВЛЕНИЕ НОВОГО КОМПОНЕНТА
+    async function addNewComponent() {
+        const category = document.getElementById('newCategory').value;
+        const productId = document.getElementById('newProductId').value.trim();
+        const displayName = document.getElementById('newDisplayName').value.trim();
+        const priceInput = document.getElementById('newPrice');
+        const price = parseInt(priceInput.value);
+        
+        // Валидация
+        if (!productId) {
+            showNotification('❌ Укажите ID компонента', 'error');
+            return;
         }
-
-        // Обновление цены
-        async function updatePrice(category, id, button) {
-            const input = button.previousElementSibling;
-            const newPrice = parseInt(input.value);
-
-            if (isNaN(newPrice) || newPrice < 0) {
-                showNotification('Некорректная цена', 'error');
-                return;
+        
+        if (!/^[a-zA-Z0-9_-]+$/.test(productId)) {
+            showNotification('❌ ID может содержать только латинские буквы, цифры, дефис и подчеркивание', 'error');
+            return;
+        }
+        
+        if (isNaN(price) || price < 0) {
+            showNotification('❌ Укажите корректную цену', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/api/add-component`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category, productId, price, displayName })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification(`✅ ${data.message}`, 'success');
+                // Очищаем форму
+                document.getElementById('newProductId').value = '';
+                document.getElementById('newDisplayName').value = '';
+                priceInput.value = '';
+                // Перезагружаем данные
+                await loadPrices();
+            } else {
+                showNotification(`❌ ${data.error}`, 'error');
             }
-
-            button.disabled = true;
-            button.textContent = '⏳';
-
-            try {
-                const response = await fetch(`${API_URL}/update-prices`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category, productId: id, price: newPrice })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showNotification(`✅ ${data.message}`, 'success');
-                    button.textContent = '✅';
-                    setTimeout(() => {
-                        button.disabled = false;
-                        button.textContent = '💾';
-                    }, 1000);
-                } else {
-                    throw new Error(data.error || 'Ошибка обновления');
-                }
-            } catch (error) {
-                console.error('Ошибка:', error);
-                showNotification(`❌ ${error.message}`, 'error');
-                button.disabled = false;
-                button.textContent = '💾';
+        } catch (error) {
+            console.error('Ошибка добавления компонента:', error);
+            showNotification(`❌ Ошибка: ${error.message}`, 'error');
+        }
+    }
+    
+    // ОБНОВЛЕНИЕ СУЩЕСТВУЮЩЕЙ ЦЕНЫ
+    async function updatePrice(category, id, buttonElement) {
+        const inputElement = buttonElement.previousElementSibling;
+        const newPrice = parseInt(inputElement.value);
+        
+        if (isNaN(newPrice) || newPrice < 0) {
+            showNotification('❌ Некорректная цена!', 'error');
+            return;
+        }
+        
+        buttonElement.disabled = true;
+        buttonElement.textContent = '⏳';
+        
+        try {
+            const response = await fetch(`${API_URL}/api/update-prices`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category, productId: id, price: newPrice })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification(`✅ ${result.message}`, 'success');
+                buttonElement.textContent = '✅';
+                setTimeout(() => {
+                    buttonElement.disabled = false;
+                    buttonElement.textContent = '💾';
+                }, 1000);
+            } else {
+                throw new Error(result.error || 'Неизвестная ошибка');
             }
+        } catch (error) {
+            console.error('Ошибка обновления цены:', error);
+            showNotification(`❌ Ошибка: ${error.message}`, 'error');
+            buttonElement.disabled = false;
+            buttonElement.textContent = '💾';
         }
-
-        // Вспомогательные функции
-        function getCategoryName(category) {
-            const names = {
-                'cpu': 'Процессоры',
-                'gpu': 'Видеокарты',
-                'mb': 'Материнские платы',
-                'case': 'Корпуса',
-                'ram': 'Оперативная память (за 1 ГБ)',
-                'storage': 'Накопители (за 1 ГБ)',
-                'psu': 'Блоки питания (за 100 Вт)',
-                'laptopCpu': 'Процессоры ноутбуков',
-                'laptopGpu': 'Видеокарты ноутбуков',
-                'laptopBrand': 'Бренды ноутбуков',
-                'laptopRam': 'ОЗУ ноутбуков (за 1 ГБ)',
-                'laptopStorage': 'Накопители ноутбуков (за 1 ГБ)',
-                'laptopDisplay': 'Экраны ноутбуков'
-            };
-            return names[category] || category;
+    }
+    
+    // УДАЛЕНИЕ КОМПОНЕНТА
+    async function deleteComponent(category, id, buttonElement) {
+        if (!confirm(`Вы уверены, что хотите удалить компонент "${getComponentName(id)}"?`)) {
+            return;
         }
-
-        function getComponentName(id) {
-            const names = {
-                'i3-13100': 'Intel Core i3-13100',
-                'i5-13400': 'Intel Core i5-13400',
-                'i5-13600k': 'Intel Core i5-13600K',
-                'i7-13700k': 'Intel Core i7-13700K',
-                'ryzen5-7600': 'AMD Ryzen 5 7600',
-                'ryzen7-7800x3d': 'AMD Ryzen 7 7800X3D',
-                'rtx3060': 'NVIDIA RTX 3060 12GB',
-                'rtx4060': 'NVIDIA RTX 4060 8GB',
-                'rtx4070': 'NVIDIA RTX 4070 12GB',
-                'rx7600': 'AMD RX 7600 8GB',
-                'rx7800xt': 'AMD RX 7800 XT 16GB',
-                'b660': 'B660 (Intel)',
-                'b760': 'B760 (Intel)',
-                'b650': 'B650 (AMD)',
-                'x670': 'X670 (AMD)',
-                'budget': 'Бюджетный',
-                'mid': 'Средний класс',
-                'premium': 'Премиум',
-                'i5-1335u': 'Intel Core i5-1335U',
-                'i7-1360p': 'Intel Core i7-1360P',
-                'ryzen5-7530u': 'AMD Ryzen 5 7530U',
-                'ryzen7-7730u': 'AMD Ryzen 7 7730U',
-                'integrated': 'Встроенная',
-                'mx550': 'NVIDIA MX550',
-                'rtx3050': 'NVIDIA RTX 3050',
-                'rtx4060': 'NVIDIA RTX 4060',
-                'asus': 'ASUS',
-                'lenovo': 'Lenovo',
-                'hp': 'HP',
-                'dell': 'Dell',
-                'acer': 'Acer',
-                'msi': 'MSI',
-                'perGB': 'За 1 ГБ',
-                'per100W': 'За 100 Вт',
-                '14': '14 дюймов',
-                '15.6': '15.6 дюймов',
-                '16': '16 дюймов',
-                '17.3': '17.3 дюймов'
-            };
-            return names[id] || id;
+        
+        buttonElement.disabled = true;
+        buttonElement.textContent = '⏳';
+        
+        try {
+            const response = await fetch(`${API_URL}/api/delete-component`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category, productId: id })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification(`✅ ${result.message}`, 'success');
+                // Перезагружаем данные
+                await loadPrices();
+            } else {
+                throw new Error(result.error || 'Неизвестная ошибка');
+            }
+        } catch (error) {
+            console.error('Ошибка удаления компонента:', error);
+            showNotification(`❌ Ошибка: ${error.message}`, 'error');
+            buttonElement.disabled = false;
+            buttonElement.textContent = '🗑️';
         }
-
-        // Уведомления
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `notification notification-${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease forwards';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-
-        // Инициализация
-        loadPrices();
-    </script>
+    }
+    
+    // Вспомогательные функции
+    function getCategoryName(category) {
+        const names = {
+            'cpu': 'Процессоры',
+            'gpu': 'Видеокарты',
+            'mb': 'Материнские платы',
+            'case': 'Корпуса',
+            'ram': 'Оперативная память (за 1 ГБ)',
+            'storage': 'Накопители (за 1 ГБ)',
+            'psu': 'Блоки питания (за 100 Вт)',
+            'laptopCpu': 'Процессоры ноутбуков',
+            'laptopGpu': 'Видеокарты ноутбуков',
+            'laptopBrand': 'Бренды ноутбуков',
+            'laptopRam': 'ОЗУ ноутбуков (за 1 ГБ)',
+            'laptopStorage': 'Накопители ноутбуков (за 1 ГБ)',
+            'laptopDisplay': 'Экраны ноутбуков'
+        };
+        return names[category] || category;
+    }
+    
+    function getComponentName(id) {
+        // Здесь можно хранить отображаемые названия, если они есть
+        // Пока используем ID как название
+        const demoNames = {
+            'i3-13100': 'Intel Core i3-13100',
+            'i5-13400': 'Intel Core i5-13400',
+            'i5-13600k': 'Intel Core i5-13600K',
+            'i7-13700k': 'Intel Core i7-13700K',
+            'ryzen5-7600': 'AMD Ryzen 5 7600',
+            'ryzen7-7800x3d': 'AMD Ryzen 7 7800X3D',
+            'rtx3060': 'NVIDIA RTX 3060 12GB',
+            'rtx4060': 'NVIDIA RTX 4060 8GB',
+            'rtx4070': 'NVIDIA RTX 4070 12GB',
+            'rx7600': 'AMD RX 7600 8GB',
+            'rx7800xt': 'AMD RX 7800 XT 16GB',
+            'b660': 'B660 (Intel)',
+            'b760': 'B760 (Intel)',
+            'b650': 'B650 (AMD)',
+            'x670': 'X670 (AMD)',
+            'budget': 'Бюджетный',
+            'mid': 'Средний класс',
+            'premium': 'Премиум',
+            'i5-1335u': 'Intel Core i5-1335U',
+            'i7-1360p': 'Intel Core i7-1360P',
+            'ryzen5-7530u': 'AMD Ryzen 5 7530U',
+            'ryzen7-7730u': 'AMD Ryzen 7 7730U',
+            'integrated': 'Встроенная',
+            'mx550': 'NVIDIA MX550',
+            'rtx3050': 'NVIDIA RTX 3050',
+            'rtx4060': 'NVIDIA RTX 4060',
+            'asus': 'ASUS',
+            'lenovo': 'Lenovo',
+            'hp': 'HP',
+            'dell': 'Dell',
+            'acer': 'Acer',
+            'msi': 'MSI'
+        };
+        return demoNames[id] || id;
+    }
+    
+    // Уведомления
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease forwards';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+    
+    // Инициализация
+    loadPrices();
+</script>
 </body>
 
 </html>
