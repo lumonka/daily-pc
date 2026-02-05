@@ -136,7 +136,11 @@ app.post('/api/update-prices', (req, res) => {
             currentPrices[category] = {};
         }
         
-        currentPrices[category][productId] = price;
+        if (typeof currentPrices[category][productId] === 'object') {
+            currentPrices[category][productId].price = price;
+        } else {
+            currentPrices[category][productId] = price;
+        }
         updateMetadata('обновление существующего компонента');
         
         if (savePrices(currentPrices)) {
@@ -177,7 +181,10 @@ app.post('/api/add-component', (req, res) => {
             currentPrices[category] = {};
         }
         
-        currentPrices[category][productId] = price;
+        currentPrices[category][productId] = {
+            price: price,
+            displayName: displayName || productId
+        };
         updateMetadata('добавление нового компонента');
         
         if (savePrices(currentPrices)) {
