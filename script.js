@@ -116,7 +116,7 @@ function updateAllPricesDisplay() {
         const value = select.value;
         
         if (value && currentPrices[id]) {
-            const price = currentPrices[id][value] || 0;
+            const price = getComponentPrice(id, value); // Используем правильную функцию
             updatePrice(`${id}Price`, price);
         }
     });
@@ -127,7 +127,7 @@ function updateAllPricesDisplay() {
         const value = select.value;
         
         if (value && currentPrices[id]) {
-            const price = currentPrices[id][value] || 0;
+            const price = getComponentPrice(id, value); // Используем правильную функцию
             updatePrice(`${id}Price`, price);
         }
     });
@@ -198,12 +198,12 @@ tabBtns.forEach(btn => {
 
 // Обработчики изменений для ПК
 document.getElementById('cpu')?.addEventListener('change', function() {
-    const price = this.value ? currentPrices.cpu[this.value] || 0 : 0;
+    const price = this.value ? getComponentPrice('cpu', this.value) : 0;
     updatePrice('cpuPrice', price);
 });
 
 document.getElementById('gpu')?.addEventListener('change', function() {
-    const price = this.value ? currentPrices.gpu[this.value] || 0 : 0;
+    const price = this.value ? getComponentPrice('gpu', this.value) : 0;
     updatePrice('gpuPrice', price);
 });
 
@@ -212,20 +212,20 @@ document.getElementById('ram')?.addEventListener('input', updateRamPrice);
 document.getElementById('storage')?.addEventListener('input', updateStoragePrice);
 
 document.getElementById('mb')?.addEventListener('change', function() {
-    const price = this.value ? currentPrices.mb[this.value] || 0 : 0;
+    const price = this.value ? getComponentPrice('mb', this.value) : 0;
     updatePrice('mbPrice', price);
 });
 
 document.getElementById('psu')?.addEventListener('input', updatePsuPrice);
 
 document.getElementById('case')?.addEventListener('change', function() {
-    const price = this.value ? currentPrices.case[this.value] || 0 : 0;
+    const price = this.value ? getComponentPrice('case', this.value) : 0;
     updatePrice('casePrice', price);
 });
 
 // Обработчики изменений для ноутбуков
 document.getElementById('laptopCpu')?.addEventListener('change', function() {
-    const price = this.value ? currentPrices.laptopCpu[this.value] || 0 : 0;
+    const price = this.value ? getComponentPrice('laptopCpu', this.value) : 0;
     updatePrice('laptopCpuPrice', price);
 });
 
@@ -239,47 +239,49 @@ document.getElementById('laptopDisplay')?.addEventListener('change', function() 
 });
 
 document.getElementById('laptopGpu')?.addEventListener('change', function() {
-    const price = this.value ? currentPrices.laptopGpu[this.value] || 0 : 0;
+    const price = this.value ? getComponentPrice('laptopGpu', this.value) : 0;
     updatePrice('laptopGpuPrice', price);
 });
 
 document.getElementById('laptopBrand')?.addEventListener('change', function() {
-    const price = this.value ? currentPrices.laptopBrand[this.value] || 0 : 0;
+    const price = this.value ? getComponentPrice('laptopBrand', this.value) : 0;
     updatePrice('laptopBrandPrice', price);
 });
 
 // Расчет стоимости ПК
-document.getElementById('pcForm')?.addEventListener('submit', function(e) {
+document.getElementById('laptopForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const cpuPrice = getComponentPrice('cpu', document.getElementById('cpu').value);
-    const gpuPrice = getComponentPrice('gpu', document.getElementById('gpu').value);
-    const ramPrice = document.getElementById('ram').value * currentPrices.ram.perGB;
-    const storagePrice = document.getElementById('storage').value * currentPrices.storage.perGB;
-    const mbPrice = getComponentPrice('mb', document.getElementById('mb').value);
-    const psuPrice = Math.ceil(document.getElementById('psu').value / 100) * currentPrices.psu.per100W;
-    const casePrice = currentPrices.case[document.getElementById('case').value] || 0;
+    const cpuPrice = getComponentPrice('laptopCpu', document.getElementById('laptopCpu').value);
+    const ramPrice = document.getElementById('laptopRam').value * currentPrices.laptopRam.perGB;
+    const storagePrice = document.getElementById('laptopStorage').value * currentPrices.laptopStorage.perGB;
+    const displayPrice = currentPrices.laptopDisplay[document.getElementById('laptopDisplay').value] || 0; // laptopDisplay - простой объект
+    const gpuPrice = getComponentPrice('laptopGpu', document.getElementById('laptopGpu').value);
+    const brandPrice = getComponentPrice('laptopBrand', document.getElementById('laptopBrand').value);
     
-    const totalPrice = cpuPrice + gpuPrice + ramPrice + storagePrice + mbPrice + psuPrice + casePrice;
+    // Базовая стоимость сборки ноутбука
+    const baseCost = 15000;
+    
+    const totalPrice = cpuPrice + ramPrice + storagePrice + displayPrice + gpuPrice + brandPrice + baseCost;
     
     // Отображение результата
-    document.getElementById('pcTotal').textContent = `₽ ${totalPrice.toLocaleString('ru-RU')}`;
+    document.getElementById('laptopTotal').textContent = `₽ ${totalPrice.toLocaleString('ru-RU')}`;
     
-    const breakdown = document.getElementById('pcBreakdown');
+    const breakdown = document.getElementById('laptopBreakdown');
     breakdown.innerHTML = `
+        <div><span>Базовая сборка:</span><span>₽ ${baseCost.toLocaleString('ru-RU')}</span></div>
         <div><span>Процессор:</span><span>₽ ${cpuPrice.toLocaleString('ru-RU')}</span></div>
-        <div><span>Видеокарта:</span><span>₽ ${gpuPrice.toLocaleString('ru-RU')}</span></div>
         <div><span>Оперативная память:</span><span>₽ ${ramPrice.toLocaleString('ru-RU')}</span></div>
         <div><span>Накопитель:</span><span>₽ ${storagePrice.toLocaleString('ru-RU')}</span></div>
-        <div><span>Материнская плата:</span><span>₽ ${mbPrice.toLocaleString('ru-RU')}</span></div>
-        <div><span>Блок питания:</span><span>₽ ${psuPrice.toLocaleString('ru-RU')}</span></div>
-        <div><span>Корпус:</span><span>₽ ${casePrice.toLocaleString('ru-RU')}</span></div>
+        <div><span>Экран:</span><span>₽ ${displayPrice.toLocaleString('ru-RU')}</span></div>
+        <div><span>Видеокарта:</span><span>₽ ${gpuPrice.toLocaleString('ru-RU')}</span></div>
+        <div><span>Бренд:</span><span>₽ ${brandPrice.toLocaleString('ru-RU')}</span></div>
         <div style="border-top: 2px solid #667eea; padding-top: 10px; margin-top: 10px; font-weight: bold;">
             <span>ИТОГО:</span><span>₽ ${totalPrice.toLocaleString('ru-RU')}</span>
         </div>
     `;
     
-    showNotification(`Расчет выполнен! Общая стоимость: ₽${totalPrice.toLocaleString('ru-RU')}`, 'success');
+    showNotification(`Расчет выполнен! Ориентировочная стоимость: ₽${totalPrice.toLocaleString('ru-RU')}`, 'success');
 });
 
 // Расчет стоимости ноутбука
