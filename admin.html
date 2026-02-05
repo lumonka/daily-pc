@@ -320,7 +320,7 @@
         }
         
         try {
-            const response = await fetch(`${API_URL}/api/add-component`, {
+            const response = await fetch(`${API_URL}/add-component`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ category, productId, price, displayName })
@@ -359,7 +359,7 @@
         buttonElement.textContent = '⏳';
         
         try {
-            const response = await fetch(`${API_URL}/api/update-prices`, {
+            const response = await fetch(`${API_URL}/update-prices`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ category, productId: id, price: newPrice })
@@ -395,7 +395,7 @@
         buttonElement.textContent = '⏳';
         
         try {
-            const response = await fetch(`${API_URL}/api/delete-component`, {
+            const response = await fetch(`${API_URL}/delete-component`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ category, productId: id })
