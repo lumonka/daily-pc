@@ -88,61 +88,24 @@ function populateSelects() {
 }
 
 function getComponentDisplayName(id, category) {
-    const item = currentPrices[category]?.[id];
-
-    if (item && typeof item === 'object' && item.displayName) {
-        return item.displayName;
-    }
+    // Попробуем красиво отформатировать ID
+    let name = id
+        .replace(/-/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2') // rtx3060 → rtx 3060
+        .replace(/\b\w/g, l => l.toUpperCase()); // Первая буква каждого слова — заглавная
     
-    const names = {
-        // CPU
-        'i3-13100': 'Intel Core i3-13100',
-        'i5-13400': 'Intel Core i5-13400',
-        'i5-13600k': 'Intel Core i5-13600K',
-        'i7-13700k': 'Intel Core i7-13700K',
-        'ryzen5-7600': 'AMD Ryzen 5 7600',
-        'ryzen7-7800x3d': 'AMD Ryzen 7 7800X3D',
-        
-        // GPU
-        'rtx3060': 'NVIDIA RTX 3060 12GB',
-        'rtx4060': 'NVIDIA RTX 4060 8GB',
-        'rtx4070': 'NVIDIA RTX 4070 12GB',
-        'rx7600': 'AMD RX 7600 8GB',
-        'rx7800xt': 'AMD RX 7800 XT 16GB',
-        
-        // MB
-        'b660': 'B660 (Intel)',
-        'b760': 'B760 (Intel)',
-        'b650': 'B650 (AMD)',
-        'x670': 'X670 (AMD)',
-        
-        // Case
-        'budget': 'Бюджетный',
-        'mid': 'Средний класс',
-        'premium': 'Премиум',
-        
-        // Laptop CPU
-        'i5-1335u': 'Intel Core i5-1335U',
-        'i7-1360p': 'Intel Core i7-1360P',
-        'ryzen5-7530u': 'AMD Ryzen 5 7530U',
-        'ryzen7-7730u': 'AMD Ryzen 7 7730U',
-        
-        // Laptop GPU
-        'integrated': 'Встроенная',
-        'mx550': 'NVIDIA MX550',
-        'rtx3050': 'NVIDIA RTX 3050',
-        'rtx4060': 'NVIDIA RTX 4060',
-        
-        // Brands
-        'asus': 'ASUS',
-        'lenovo': 'Lenovo',
-        'hp': 'HP',
-        'dell': 'Dell',
-        'acer': 'Acer',
-        'msi': 'MSI'
+    // Добавим префиксы по категориям
+    const prefixes = {
+        cpu: '',
+        gpu: 'Видеокарта ',
+        mb: 'Материнская плата ',
+        case: 'Корпус ',
+        laptopCpu: 'Процессор ноутбука ',
+        laptopGpu: 'Видеокарта ноутбука ',
+        laptopBrand: 'Бренд '
     };
     
-    return names[id] || id; // Если нет в списке - показываем ID
+    return (prefixes[category] || '') + name;
 }
 
 // Функция обновления отображения всех цен
