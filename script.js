@@ -50,6 +50,14 @@ async function fetchAllPrices() {
     }
 }
 
+function getComponentPrice(category, id) {
+    const item = currentPrices[category]?.[id];
+    if (!item) return 0;
+    
+    // Поддержка старого и нового формата
+    return typeof item === 'object' ? item.price : item;
+}
+
 function populateSelects() {
     const categoryMap = {
         'cpu': 'cpu',
@@ -70,7 +78,7 @@ function populateSelects() {
 
         // Заполняем опциями из currentPrices
         const items = currentPrices[category] || {};
-        Object.entries(items).forEach(([id, price]) => {
+        Object.entries(items).forEach(([id, item]) => {
             const option = document.createElement('option');
             option.value = id;
             option.textContent = getComponentDisplayName(id, category);
@@ -80,6 +88,12 @@ function populateSelects() {
 }
 
 function getComponentDisplayName(id, category) {
+    const item = currentPrices[category]?.[id];
+
+    if (item && typeof item === 'object' && item.displayName) {
+        return item.displayName;
+    }
+    
     const names = {
         // CPU
         'i3-13100': 'Intel Core i3-13100',
@@ -275,11 +289,11 @@ document.getElementById('laptopBrand')?.addEventListener('change', function() {
 document.getElementById('pcForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const cpuPrice = currentPrices.cpu[document.getElementById('cpu').value] || 0;
-    const gpuPrice = currentPrices.gpu[document.getElementById('gpu').value] || 0;
+    const cpuPrice = getComponentPrice('cpu', document.getElementById('cpu').value);
+    const gpuPrice = getComponentPrice('gpu', document.getElementById('gpu').value);
     const ramPrice = document.getElementById('ram').value * currentPrices.ram.perGB;
     const storagePrice = document.getElementById('storage').value * currentPrices.storage.perGB;
-    const mbPrice = currentPrices.mb[document.getElementById('mb').value] || 0;
+    const mbPrice = getComponentPrice('mb', document.getElementById('mb').value);
     const psuPrice = Math.ceil(document.getElementById('psu').value / 100) * currentPrices.psu.per100W;
     const casePrice = currentPrices.case[document.getElementById('case').value] || 0;
     
@@ -309,12 +323,12 @@ document.getElementById('pcForm')?.addEventListener('submit', function(e) {
 document.getElementById('laptopForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const cpuPrice = currentPrices.laptopCpu[document.getElementById('laptopCpu').value] || 0;
+    const cpuPrice = getComponentPrice('laptopCpu', document.getElementById('laptopCpu').value);
     const ramPrice = document.getElementById('laptopRam').value * currentPrices.laptopRam.perGB;
     const storagePrice = document.getElementById('laptopStorage').value * currentPrices.laptopStorage.perGB;
-    const displayPrice = currentPrices.laptopDisplay[document.getElementById('laptopDisplay').value] || 0;
-    const gpuPrice = currentPrices.laptopGpu[document.getElementById('laptopGpu').value] || 0;
-    const brandPrice = currentPrices.laptopBrand[document.getElementById('laptopBrand').value] || 0;
+    const displayPrice = getComponentPrice('laptopDisplay', document.getElementById('laptopDisplay').value);
+    const gpuPrice = getComponentPrice('laptopCpu', document.getElementById('laptopGpu').value);
+    const brandPrice = getComponentPrice('laptopBrand', document.getElementById('laptopBrand').value);
     
     // Базовая стоимость сборки ноутбука
     const baseCost = 15000;
