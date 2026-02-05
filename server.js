@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const path = require('fs');
 const fs = require('fs');
 
 const app = express();
@@ -261,9 +261,9 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log('\n╔════════════════════════════════════════════════════════════╗');
     console.log('║                                                            ║');
-    console.log(`║  🚀 СЕРВЕР ЗАПУЩЕН:  https://daily-pc.onrender.com:${PORT}              ║`);
-    console.log(`║  📡 API цены:        https://daily-pc.onrender.com:${PORT}/api/all-prices║`);
-    console.log(`║  👨‍💼 Админ-панель:    https://daily-pc.onrender.com:${PORT}/admin          ║');
+    console.log(`║  🚀 СЕРВЕР ЗАПУЩЕН:  http://localhost:${PORT}              ║`);
+    console.log(`║  📡 API цены:        http://localhost:${PORT}/api/all-prices║`);
+    console.log(`║  👨‍💼 Админ-панель:    http://localhost:${PORT}/admin          ║`);
     console.log('║                                                            ║');
     console.log('║  💡 Новые функции:                                        ║');
     console.log('║     • Добавление новых компонентов                        ║');
