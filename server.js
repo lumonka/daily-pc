@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const path = require('fs');
 const fs = require('fs');
 
 const app = express();
@@ -8,13 +8,13 @@ const PORT = 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Увеличим лимит для больших данных
 app.use(express.static(path.join(__dirname)));
 
-// ========== ФАЙЛ С ЦЕНАМИ (можно редактировать вручную) ==========
+// ========== ФАЙЛ С ЦЕНАМИ ==========
 const PRICES_FILE = path.join(__dirname, 'prices.json');
 
-// Загрузка цен из файла (или создание демо-версии)
+// Загрузка цен из файла
 function loadPrices() {
     try {
         if (fs.existsSync(PRICES_FILE)) {
@@ -25,11 +25,10 @@ function loadPrices() {
         console.error('Ошибка загрузки prices.json:', error);
     }
     
-    // Если файла нет - создаём демо-версию
     return createDemoPrices();
 }
 
-// Создание демо-цен (актуально на февраль 2026)
+// Создание демо-цен
 function createDemoPrices() {
     return {
         cpu: {
@@ -111,6 +110,8 @@ function savePrices(prices) {
 let currentPrices = loadPrices();
 
 // ========== API ЭНДПОИНТЫ ==========
+
+// Получение всех цен
 app.get('/api/all-prices', (req, res) => {
     res.json({
         prices: currentPrices,
@@ -120,7 +121,7 @@ app.get('/api/all-prices', (req, res) => {
     });
 });
 
-// Эндпоинт для обновления цен (админ-панель)
+// Обновление существующей цены
 app.post('/api/update-prices', (req, res) => {
     try {
         const { category, productId, price } = req.body;
@@ -136,13 +137,8 @@ app.post('/api/update-prices', (req, res) => {
         }
         
         currentPrices[category][productId] = price;
-        currentPrices.metadata = {
-            ...currentPrices.metadata,
-            lastUpdated: new Date().toISOString(),
-            source: 'ручное обновление'
-        };
+        updateMetadata('обновление существующего компонента');
         
-        // Сохраняем в файл
         if (savePrices(currentPrices)) {
             res.json({ 
                 success: true, 
@@ -159,12 +155,99 @@ app.post('/api/update-prices', (req, res) => {
     }
 });
 
+// ДОБАВЛЕНИЕ НОВОГО КОМПОНЕНТА
+app.post('/api/add-component', (req, res) => {
+    try {
+        const { category, productId, price, displayName } = req.body;
+        
+        if (!category || !productId || price === undefined) {
+            return res.status(400).json({ 
+                error: 'Требуются параметры: category, productId, price' 
+            });
+        }
+        
+        // Проверяем, существует ли уже такой компонент
+        if (currentPrices[category] && currentPrices[category][productId] !== undefined) {
+            return res.status(409).json({ 
+                error: `Компонент ${category}/${productId} уже существует` 
+            });
+        }
+        
+        if (!currentPrices[category]) {
+            currentPrices[category] = {};
+        }
+        
+        currentPrices[category][productId] = price;
+        updateMetadata('добавление нового компонента');
+        
+        if (savePrices(currentPrices)) {
+            res.json({ 
+                success: true, 
+                message: `Новый компонент ${category}/${productId} добавлен со стоимостью ₽${price}`,
+                timestamp: new Date().toISOString(),
+                component: { category, productId, price, displayName }
+            });
+        } else {
+            res.status(500).json({ error: 'Ошибка сохранения файла' });
+        }
+        
+    } catch (error) {
+        console.error('Ошибка добавления компонента:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// УДАЛЕНИЕ КОМПОНЕНТА
+app.post('/api/delete-component', (req, res) => {
+    try {
+        const { category, productId } = req.body;
+        
+        if (!category || !productId) {
+            return res.status(400).json({ 
+                error: 'Требуются параметры: category, productId' 
+            });
+        }
+        
+        if (!currentPrices[category] || currentPrices[category][productId] === undefined) {
+            return res.status(404).json({ 
+                error: `Компонент ${category}/${productId} не найден` 
+            });
+        }
+        
+        delete currentPrices[category][productId];
+        updateMetadata('удаление компонента');
+        
+        if (savePrices(currentPrices)) {
+            res.json({ 
+                success: true, 
+                message: `Компонент ${category}/${productId} удалён`,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.status(500).json({ error: 'Ошибка сохранения файла' });
+        }
+        
+    } catch (error) {
+        console.error('Ошибка удаления компонента:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Вспомогательная функция для обновления метаданных
+function updateMetadata(action) {
+    currentPrices.metadata = {
+        ...currentPrices.metadata,
+        lastUpdated: new Date().toISOString(),
+        source: `ручное управление (${action})`
+    };
+}
+
 // Главная страница
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Админ-панель для обновления цен
+// Админ-панель
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
@@ -178,18 +261,14 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log('\n╔════════════════════════════════════════════════════════════╗');
     console.log('║                                                            ║');
-    console.log(`║  🚀 СЕРВЕР ЗАПУЩЕН:  http://localhost:${PORT}              ║`);
-    console.log(`║  📡 API цены:        http://localhost:${PORT}/api/all-prices║`);
-    console.log(`║  👨‍💼 Админ-панель:    http://localhost:${PORT}/admin          ║`);
-    console.log(`║  📁 Файл цен:        ${PRICES_FILE}                        ║`);
+    console.log(`║  🚀 СЕРВЕР ЗАПУЩЕН:  https://daily-pc.onrender.com:${PORT}              ║`);
+    console.log(`║  📡 API цены:        https://daily-pc.onrender.com:${PORT}/api/all-prices║`);
+    console.log(`║  👨‍💼 Админ-панель:    https://daily-pc.onrender.com:${PORT}/admin          ║');
     console.log('║                                                            ║');
-    console.log('║  💡 Цены загружаются из файла prices.json                 ║');
-    console.log('║  ✏️  Обновляйте цены через админ-панель или вручную       ║');
-    console.log('║  📊 Данные автоматически сохраняются в файл               ║');
+    console.log('║  💡 Новые функции:                                        ║');
+    console.log('║     • Добавление новых компонентов                        ║');
+    console.log('║     • Удаление существующих компонентов                   ║');
+    console.log('║     • Редактирование цен                                  ║');
     console.log('║                                                            ║');
     console.log('╚════════════════════════════════════════════════════════════╝\n');
-    
-    console.log('📊 Текущие цены:');
-    console.log(`   Последнее обновление: ${currentPrices.metadata?.lastUpdated || 'неизвестно'}`);
-    console.log(`   Источник: ${currentPrices.metadata?.source || 'demo'}`);
 });
